@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ชำระเงิน - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/cart" class="nav-link">🛒 ตะกร้า</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="checkout-section">
+            <h2>ชำระเงิน</h2>
+
+            <div class="checkout-grid">
+                <!-- ฟอร์มข้อมูลลูกค้า -->
+                <div class="checkout-form">
+                    <h3>ข้อมูลการจัดส่ง</h3>
+                    <form id="checkoutForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">ชื่อ *</label>
+                                <input type="text" id="firstName" name="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">นามสกุล *</label>
+                                <input type="text" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">อีเมล *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">เบอร์โทรศัพท์ *</label>
+                            <input type="tel" id="phone" name="phone" pattern="[0-9\-\+\(\)\s]{7,}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">ที่อยู่ *</label>
+                            <textarea id="address" name="address" rows="3" required></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="district">เขต/อำเภอ *</label>
+                                <input type="text" id="district" name="district" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="province">จังหวัด *</label>
+                                <input type="text" id="province" name="province" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="zipcode">รหัสไปรษณีย์ *</label>
+                                <input type="text" id="zipcode" name="zipcode" pattern="[0-9]{5}" required>
+                            </div>
+                        </div>
+
+                        <h3 style="margin-top: 30px;">วิธีการชำระเงิน</h3>
+
+                        <div class="payment-methods">
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="credit_card" checked>
+                                <span>💳 บัตรเครดิต/เดบิต</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="bank_transfer">
+                                <span>🏦 โอนเงินจากธนาคาร</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="e_wallet">
+                                <span>📱 กระเป๋าเงินดิจิทัล</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="paymentMethod" value="cash_on_delivery">
+                                <span>🏠 เก็บเงินปลายทาง</span>
+                            </label>
+                        </div>
+
+                        <div id="creditCardForm" class="payment-details">
+                            <div class="form-group">
+                                <label for="cardName">ชื่อผู้ถือบัตร *</label>
+                                <input type="text" id="cardName" name="cardName">
+                            </div>
+                            <div class="form-group">
+                                <label for="cardNumber">หมายเลขบัตร *</label>
+                                <input type="text" id="cardNumber" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expiryDate">วันหมดอายุ *</label>
+                                    <input type="text" id="expiryDate" name="expiryDate" placeholder="MM/YY" maxlength="5">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cvv">CVV *</label>
+                                    <input type="text" id="cvv" name="cvv" placeholder="123" maxlength="4">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;">
+                            ยืนยันการสั่งซื้อ
+                        </button>
+                    </form>
+                </div>
+
+                <!-- สรุปคำสั่งซื้อ -->
+                <div class="order-summary">
+                    <h3>สรุปคำสั่งซื้อ</h3>
+
+                    <div class="summary-items">
+                        {% for item in cart_items %}
+                            <div class="summary-item">
+                                <span>{{ item.name }} × {{ item.quantity }}</span>
+                                <span>฿{{ "{:,}".format(item.total) }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="summary-divider"></div>
+
+                    <div class="summary-row">
+                        <span>ยอดรวม:</span>
+                        <span>฿{{ "{:,}".format(subtotal) }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>ค่าจัดส่ง:</span>
+                        <span>฿{{ "{:,}".format(shipping) }}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>ภาษี (7%):</span>
+                        <span>฿{{ "{:.2f}".format(tax) }}</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>รวมทั้งสิ้น:</span>
+                        <span>฿{{ "{:,}".format(total|int) }}</span>
+                    </div>
+
+                    <p class="payment-info">💡 ข้อมูลการชำระเงินนี้ปลอดภัย เราใช้การเข้ารหัส SSL</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved</p>
+        </div>
+    </footer>
+
+    <script>
+        // ปรับเปลี่ยนฟอร์มตามวิธีการชำระเงิน
+        document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const creditCardForm = document.getElementById('creditCardForm');
+                if (this.value === 'credit_card') {
+                    creditCardForm.style.display = 'block';
+                    // กำหนด required
+                    creditCardForm.querySelectorAll('input[type="text"]').forEach(input => {
+                        input.required = true;
+                    });
+                } else {
+                    creditCardForm.style.display = 'none';
+                    // ลบ required
+                    creditCardForm.querySelectorAll('input[type="text"]').forEach(input => {
+                        input.required = false;
+                    });
+                }
+            });
+        });
+
+        // สำหรับแสดงฟอร์มบัตรเครดิตเมื่อโหลดหน้า
+        if (document.querySelector('input[name="paymentMethod"][value="credit_card"]').checked) {
+            document.getElementById('creditCardForm').style.display = 'block';
+        } else {
+            document.getElementById('creditCardForm').style.display = 'none';
+        }
+
+        // จัดรูปแบบหมายเลขบัตร
+        document.getElementById('cardNumber').addEventListener('input', function() {
+            let value = this.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formattedValue += ' ';
+                }
+                formattedValue += value[i];
+            }
+            this.value = formattedValue;
+        });
+
+        // จัดรูปแบบวันหมดอายุ
+        document.getElementById('expiryDate').addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            this.value = value;
+        });
+
+        // ส่งข้อมูลการสั่งซื้อ
+        document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = {
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                district: document.getElementById('district').value,
+                province: document.getElementById('province').value,
+                zipcode: document.getElementById('zipcode').value,
+                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value
+            };
+
+            fetch('/api/order/place', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = `/success/${data.order_id}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+            });
+        });
+    </script>
+</body>
+</html>

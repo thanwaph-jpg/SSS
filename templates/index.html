@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartMall - ศูนย์การค้าออนไลน์</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+                <p>ศูนย์การค้าออนไลน์เบอร์หนึ่ง</p>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/cart" class="nav-link cart-link">
+                    🛒 ตะกร้า <span class="cart-count">{{ cart_count }}</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="container">
+            <h2>กรองตามหมวดหมู่</h2>
+            <div class="category-buttons">
+                {% for category in categories %}
+                    {% if category == current_category %}
+                        <a href="/?category={{ category }}" class="btn btn-primary active">{{ category }}</a>
+                    {% else %}
+                        <a href="/?category={{ category }}" class="btn btn-outline">{{ category }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="products-section">
+            <h2>สินค้าแนะนำ</h2>
+            <div class="products-grid">
+                {% for product in products %}
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="{{ url_for('static', filename='images/products/product_' + product.id|string + '.png') }}" 
+                                 alt="{{ product.name }}" loading="lazy">
+                            <span class="category-badge">{{ product.category }}</span>
+                        </div>
+                        <div class="product-info">
+                            <h3>{{ product.name }}</h3>
+                            <p class="description">{{ product.description }}</p>
+                            <div class="product-footer">
+                                <span class="price">฿{{ "{:,}".format(product.price) }}</span>
+                                <button class="btn btn-add-cart" 
+                                        onclick="addToCart({{ product.id }}, '{{ product.name }}')">
+                                    เพิ่มลงตะกร้า
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved | เลขประจำตัวผู้เสียภาษีอากร 0123456789012</p>
+        </div>
+    </footer>
+
+    <script>
+        function addToCart(productId, productName) {
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // อัปเดตจำนวนตะกร้า
+                    const cartCount = document.querySelector('.cart-count');
+                    if (cartCount) {
+                        cartCount.textContent = data.cart_count;
+                    }
+                    
+                    // แสดงข้อความยืนยัน
+                    showNotification(`✓ เพิ่ม ${productName} ลงตะกร้าแล้ว`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+            });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

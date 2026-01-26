@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตะกร้าสินค้า - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/cart" class="nav-link active">🛒 ตะกร้า</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="cart-section">
+            <h2>ตะกร้าสินค้าของคุณ</h2>
+
+            {% if cart_items %}
+                <div class="cart-grid">
+                    <div class="cart-items">
+                        {% for item in cart_items %}
+                            <div class="cart-item">
+                                <img src="{{ url_for('static', filename='images/products/product_' + item.id|string + '.png') }}" 
+                                     alt="{{ item.name }}">
+                                <div class="item-details">
+                                    <h3>{{ item.name }}</h3>
+                                    <p>ราคา: ฿{{ "{:,}".format(item.price) }}</p>
+                                </div>
+                                <div class="item-quantity">
+                                    <button onclick="decreaseQty({{ item.id }})">−</button>
+                                    <input type="number" id="qty-{{ item.id }}" value="{{ item.quantity }}" min="1" 
+                                           onchange="updateQty({{ item.id }}, this.value)">
+                                    <button onclick="increaseQty({{ item.id }})">+</button>
+                                </div>
+                                <div class="item-total">
+                                    ฿{{ "{:,}".format(item.total) }}
+                                </div>
+                                <button class="btn btn-remove" onclick="removeFromCart({{ item.id }})">
+                                    ลบ
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="cart-summary">
+                        <h3>สรุปคำสั่งซื้อ</h3>
+                        <div class="summary-row">
+                            <span>ยอดรวม:</span>
+                            <span>฿{{ "{:,}".format(subtotal) }}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>ค่าจัดส่ง:</span>
+                            <span>฿{{ "{:,}".format(shipping) }}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>ภาษี (7%):</span>
+                            <span>฿{{ "{:.2f}".format(tax) }}</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>รวมทั้งสิ้น:</span>
+                            <span>฿{{ "{:,}".format(total|int) }}</span>
+                        </div>
+                        <a href="/checkout" class="btn btn-primary btn-block">
+                            ไปชำระเงิน
+                        </a>
+                        <a href="/" class="btn btn-outline btn-block">
+                            ช้อปปิ้งต่อ
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-cart">
+                    <h3>ตะกร้าของคุณว่างเปล่า</h3>
+                    <p>ไปเลือกสินค้าที่คุณชื่นชอบกันเถอะ</p>
+                    <a href="/" class="btn btn-primary">เลือกสินค้า</a>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved</p>
+        </div>
+    </footer>
+
+    <script>
+        function decreaseQty(productId) {
+            const input = document.getElementById(`qty-${productId}`);
+            const currentQty = parseInt(input.value);
+            if (currentQty > 1) {
+                input.value = currentQty - 1;
+                updateQty(productId, currentQty - 1);
+            }
+        }
+
+        function increaseQty(productId) {
+            const input = document.getElementById(`qty-${productId}`);
+            const currentQty = parseInt(input.value);
+            input.value = currentQty + 1;
+            updateQty(productId, currentQty + 1);
+        }
+
+        function updateQty(productId, quantity) {
+            fetch('/api/cart/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: parseInt(quantity)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+
+        function removeFromCart(productId) {
+            if (confirm('ต้องการลบสินค้าชิ้นนี้ออกจากตะกร้าหรือไม่?')) {
+                fetch('/api/cart/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

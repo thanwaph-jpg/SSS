@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สั่งซื้อสำเร็จ - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/cart" class="nav-link">🛒 ตะกร้า</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="success-section">
+            <div class="success-box">
+                <div class="success-icon">✓</div>
+                <h2>สั่งซื้อสำเร็จแล้ว!</h2>
+                <p>ขอบคุณที่ใช้บริการ SmartMall</p>
+
+                <div class="order-info">
+                    <p><strong>เลขที่คำสั่งซื้อ:</strong></p>
+                    <p class="order-id">{{ order_id }}</p>
+                </div>
+
+                <div class="success-messages">
+                    <p>📧 เราจะส่งรายละเอียดคำสั่งซื้อไปยังอีเมลของคุณ</p>
+                    <p>📦 สินค้าจะถูกจัดส่งภายใน 3-5 วันทำการ</p>
+                    <p>📞 หากมีคำถามติดต่อเราที่ 02-123-4567 หรือ support@smartmall.com</p>
+                </div>
+
+                <div class="success-buttons">
+                    <a href="/" class="btn btn-primary">กลับไปช้อปปิ้ง</a>
+                    <a href="/" class="btn btn-outline">หน้าแรก</a>
+                </div>
+            </div>
+
+            <div class="next-steps">
+                <h3>ขั้นตอนต่อไป</h3>
+                <ol>
+                    <li>
+                        <strong>ยืนยันการชำระเงิน</strong>
+                        <p>โปรดชำระเงินตามวิธีที่เลือก ภายในเวลา 24 ชั่วโมง</p>
+                    </li>
+                    <li>
+                        <strong>ตรวจสอบสถานะ</strong>
+                        <p>คุณสามารถตรวจสอบสถานะคำสั่งซื้อจากอีเมลที่เราส่งให้</p>
+                    </li>
+                    <li>
+                        <strong>รับสินค้า</strong>
+                        <p>เมื่อสินค้าได้รับการจัดส่ง คุณจะได้รับการแจ้งเตือน</p>
+                    </li>
+                </ol>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved</p>
+        </div>
+    </footer>
+</body>
+</html>
