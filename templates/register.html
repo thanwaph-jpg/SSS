@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/login" class="nav-link">เข้าสู่ระบบ</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container auth-page">
+        <div class="auth-box">
+            <h2>สมัครสมาชิก</h2>
+            {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+            <form method="post" class="auth-form">
+                <div class="form-group">
+                    <label>ชื่อเต็ม</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>อีเมล</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>รหัสผ่าน</label>
+                    <input type="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">สมัครสมาชิก</button>
+            </form>
+            <p class="auth-link">มีบัญชีแล้ว? <a href="/login">เข้าสู่ระบบ</a></p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved</p>
+        </div>
+    </footer>
+</body>
+</html>

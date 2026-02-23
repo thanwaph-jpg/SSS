@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Products - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>จัดการสินค้า</h2>
+        <p><a href="{{ url_for('admin_products_add') }}" class="btn">เพิ่มสินค้าใหม่</a> | <a href="{{ url_for('admin_dashboard') }}">กลับ</a></p>
+        <table class="table">
+            <thead>
+                <tr><th>ID</th><th>ชื่อ</th><th>ราคา</th><th>หมวด</th><th>การกระทำ</th></tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td>{{ p.name }}</td>
+                    <td>฿{{ "{:,}".format(p.price) }}</td>
+                    <td>{{ p.category }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_products_edit', product_id=p.id) }}">แก้ไข</a>
+                        <form method="post" action="{{ url_for('admin_products_delete', product_id=p.id) }}" style="display:inline" onsubmit="return confirm('ลบสินค้านี้?')">
+                            <button class="btn btn-danger">ลบ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

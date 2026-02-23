@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from functools import wraps
+from werkzeug.utils import secure_filename
 from PIL import Image, ImageDraw, ImageFont
 import os
 import json
@@ -8,9 +10,16 @@ import random
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here-change-this'
 
+# Admin credentials (change in production)
+app.config['ADMIN_USERNAME'] = 'admin'
+app.config['ADMIN_PASSWORD'] = '1234'
+
 # สร้างโฟลเดอร์สำหรับเก็บรูปภาพ
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'images', 'products')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+PROFILE_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'images', 'profiles')
+os.makedirs(PROFILE_FOLDER, exist_ok=True)
 
 # ข้อมูลสินค้า
 PRODUCTS = [
@@ -23,6 +32,55 @@ PRODUCTS = [
 ]
 
 CATEGORIES = ['ทั้งหมด', 'อิเล็กทรอนิกส์', 'คอมพิวเตอร์', 'กล้อง']
+
+# ในหน่วยความจำเก็บคำสั่งซื้อ (อ้างอิงเทส)
+ORDERS = []
+
+# ข้อมูลผู้ใช้ลูกค้า (เก็บในหน่วยความจำ)
+USERS = []
+
+# ข้อมูล reviews/ratings (เก็บในหน่วยความจำ)
+REVIEWS = []
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('is_admin'):
+            return redirect(url_for('admin_login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect(url_for('login', next=request.path))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# การตั้งค่าสำหรับอัพโหลดรูป
+ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXT
+
+def save_uploaded_image(file_storage, product_id):
+    try:
+        if not file_storage or file_storage.filename == '':
+            return False
+        if not allowed_file(file_storage.filename):
+            return False
+
+        # ใช้ Pillow แปลงเป็น PNG เสมอ เพื่อความเข้ากันกับเทมเพลต
+        img = Image.open(file_storage.stream)
+        image_path = os.path.join(UPLOAD_FOLDER, f'product_{product_id}.png')
+        img = img.convert('RGBA') if img.mode in ('P', 'RGBA', 'LA') else img.convert('RGB')
+        img.save(image_path, format='PNG')
+        return True
+    except Exception:
+        return False
 
 def generate_product_images():
     """สร้างรูปภาพสินค้า 6 รูปอัตโนมัติ"""
@@ -68,6 +126,94 @@ def generate_product_images():
             # บันทึกรูป
             img.save(image_path)
 
+    # สร้างแบนเนอร์หลายภาพสำหรับแสดงเป็นสไลเดอร์พร้อมไล่สี (ถ้ายังไม่มี)
+    banners = [
+        {'idx': 1, 'colors': ['#667eea', '#764ba2'], 'text': '🛍️ ดีลพิเศษ - อิเล็กทรอนิกส์ลดราคา', 'subtitle': 'ลด 50% เฉพาะวันนี้!'},
+        {'idx': 2, 'colors': ['#f093fb', '#f5576c'], 'text': '💻 โน้ตบุ๊คเรือธงประหยัดสุด', 'subtitle': 'MacBook & Dell พร้อมจัดส่ง 24 ชั่วโมง'},
+        {'idx': 3, 'colors': ['#4facfe', '#00f2fe'], 'text': '📷 กล้องมืออาชีพเลือกได้', 'subtitle': 'Canon EOS R5 และ Sony A7IV ในราคาดี'},
+    ]
+    for banner in banners:
+        banner_path = os.path.join(os.path.dirname(__file__), 'static', 'images', f'banner_{banner["idx"]}.png')
+        if not os.path.exists(banner_path):
+            try:
+                bimg = Image.new('RGB', (1200, 350), color=banner['colors'][0])
+                bdraw = ImageDraw.Draw(bimg)
+                try:
+                    title_font = ImageFont.truetype("arial.ttf", 56)
+                    subtitle_font = ImageFont.truetype("arial.ttf", 28)
+                except:
+                    title_font = ImageFont.load_default()
+                    subtitle_font = ImageFont.load_default()
+                # วาดข้อความหลัก
+                title = banner['text']
+                bbox = bdraw.textbbox((0,0), title, font=title_font)
+                w = bbox[2] - bbox[0]
+                text_x = (1200 - w) // 2
+                text_y = 80
+                bdraw.text((text_x, text_y), title, fill='white', font=title_font)
+                # วาดข้อความรอง
+                subtitle = banner['subtitle']
+                bbox_sub = bdraw.textbbox((0,0), subtitle, font=subtitle_font)
+                w_sub = bbox_sub[2] - bbox_sub[0]
+                sub_x = (1200 - w_sub) // 2
+                bdraw.text((sub_x, 190), subtitle, fill='#ffffcc', font=subtitle_font)
+                bimg.save(banner_path)
+            except Exception:
+                pass
+
+def generate_anime_avatar(user_id, user_name):
+    """สร้างรูปโปรไฟล์อนิเมะสำหรับผู้ใช้"""
+    anime_styles = [
+        {'colors': ['#FF9FF3', '#F368E0'], 'emoji': '👩‍🎨'},  # สีชมพู
+        {'colors': ['#A29BFE', '#6C5CE7'], 'emoji': '👩'},     # สีม่วง
+        {'colors': ['#74B9FF', '#0984E3'], 'emoji': '👨‍💻'},    # สีฟ้า
+        {'colors': ['#55EFC4', '#00B894'], 'emoji': '🧚'},     # สีเขียว
+        {'colors': ['#FDCB6E', '#F39C12'], 'emoji': '👯'},     # สีเหลือง
+        {'colors': ['#FF7675', '#D63031'], 'emoji': '⛩️'},     # สีแดง
+        {'colors': ['#FD79A8', '#E84393'], 'emoji': '💕'},     # สีชมพูแบบสดใส
+        {'colors': ['#81ECEC', '#00CEC9'], 'emoji': '👽'},     # สีฟ้าอมเขียว
+    ]
+    
+    # เลือก style จาก user_id
+    style = anime_styles[user_id % len(anime_styles)]
+    
+    # สร้างรูปภาพขนาด 200x200
+    avatar_img = Image.new('RGB', (200, 200), color=style['colors'][0])
+    draw = ImageDraw.Draw(avatar_img)
+    
+    # วาดพื้นหลัง gradient (ทำแบบง่ายด้วย rectangles)
+    for i in range(200):
+        ratio = i / 200
+        # สมมติ interpolate ระหว่าง 2 สี
+        r = int(int(style['colors'][0][1:3], 16) * (1-ratio) + int(style['colors'][1][1:3], 16) * ratio)
+        g = int(int(style['colors'][0][3:5], 16) * (1-ratio) + int(style['colors'][1][3:5], 16) * ratio)
+        b = int(int(style['colors'][0][5:7], 16) * (1-ratio) + int(style['colors'][1][5:7], 16) * ratio)
+        color = f'#{r:02x}{g:02x}{b:02x}'
+        draw.line([(0, i), (200, i)], fill=color, width=1)
+    
+    # เขียน emoji ตรงกลาง
+    try:
+        font = ImageFont.truetype("arial.ttf", 80)
+    except:
+        font = ImageFont.load_default()
+    
+    # หา emoji จาก user_name
+    emojis = ['🤖', '⚡', '🌟', '✨', '💎', '🎮', '🚀', '🎯']
+    emoji = emojis[user_id % len(emojis)]
+    
+    # วาด emoji ตรงกลาง
+    bbox = draw.textbbox((0, 0), emoji, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x = (200 - text_width) // 2
+    y = (200 - text_height) // 2
+    draw.text((x, y), emoji, font=font, fill='white')
+    
+    # บันทึกรูปภาพ
+    avatar_path = os.path.join(PROFILE_FOLDER, f'profile_{user_id}.png')
+    avatar_img.save(avatar_path)
+    return f'profile_{user_id}.png'
+
 def get_cart_total(cart):
     """คำนวณยอดรวมของตะกร้า"""
     total = 0
@@ -94,6 +240,27 @@ def index():
                          products=filtered_products,
                          categories=CATEGORIES,
                          current_category=category,
+                         cart_count=cart_count)
+
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    """หน้ารายละเอียดสินค้า"""
+    product = next((p for p in PRODUCTS if p['id'] == product_id), None)
+    if not product:
+        return redirect(url_for('index'))
+    
+    # สินค้าที่เกี่ยวข้อง (หมวดเดียวกัน ลบออกตัวเอง)
+    related = [p for p in PRODUCTS if p['category'] == product['category'] and p['id'] != product_id]
+    
+    # ดึง reviews ของสินค้านี้
+    product_reviews = [r for r in REVIEWS if r['product_id'] == product_id]
+    
+    cart_count = len(session.get('cart', []))
+    
+    return render_template('product_detail.html', 
+                         product=product,
+                         related=related,
+                         reviews=product_reviews,
                          cart_count=cart_count)
 
 @app.route('/api/cart/add', methods=['POST'])
@@ -224,7 +391,9 @@ def place_order():
     if 'cart' in session:
         session['cart'] = []
         session.modified = True
-    
+    # เก็บคำสั่งซื้อในหน่วยความจำ (ตัวอย่าง)
+    ORDERS.append(order_data)
+
     return jsonify({
         'success': True,
         'order_id': order_data['order_id'],
@@ -235,6 +404,216 @@ def place_order():
 def order_success(order_id):
     """หน้าการสั่งซื้อสำเร็จ"""
     return render_template('success.html', order_id=order_id)
+
+
+# --- Customer Auth Routes ---
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    error = None
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        name = request.form.get('name')
+        
+        # ตรวจสอบว่า email ซ้ำแล้วหรือไม่
+        if any(u['email'] == email for u in USERS):
+            error = 'อีเมลนี้ลงทะเบียนไปแล้ว'
+        elif not email or not password or not name:
+            error = 'กรุณากรอกข้อมูลให้ครบถ้วน'
+        else:
+            # สร้างบัญชีใหม่
+            user_id = len(USERS) + 1
+            # สร้างรูปโปรไฟล์อนิเมะ
+            profile_pic = generate_anime_avatar(user_id, name)
+            USERS.append({'id': user_id, 'email': email, 'password': password, 'name': name, 'profile_pic': profile_pic})
+            session['user_id'] = user_id
+            session['user_name'] = name
+            return redirect(url_for('index'))
+    return render_template('register.html', error=error)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        user = next((u for u in USERS if u['email'] == email and u['password'] == password), None)
+        if user:
+            session['user_id'] = user['id']
+            session['user_name'] = user['name']
+            return redirect(request.args.get('next', url_for('index')))
+        else:
+            error = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    session.pop('user_name', None)
+    return redirect(url_for('index'))
+
+
+@app.route('/profile')
+@login_required
+def profile():
+    user = next((u for u in USERS if u['id'] == session.get('user_id')), None)
+    if not user:
+        return redirect(url_for('login'))
+    
+    # ถ้าผู้ใช้ไม่มี profile_pic ให้สร้างให้
+    if 'profile_pic' not in user:
+        profile_pic = generate_anime_avatar(user['id'], user['name'])
+        user['profile_pic'] = profile_pic
+    
+    # ดึง orders ของผู้ใช้นี้ (หากเก็บ user_id ใน order ด้วย)
+    my_reviews = [r for r in REVIEWS if r.get('user_id') == user['id']]
+    
+    return render_template('profile.html', user=user, reviews=my_reviews)
+
+
+# --- Review Routes ---
+@app.route('/product/<int:product_id>/review', methods=['GET', 'POST'])
+@login_required
+def add_review(product_id):
+    product = next((p for p in PRODUCTS if p['id'] == product_id), None)
+    if not product:
+        return redirect(url_for('index'))
+    
+    user = next((u for u in USERS if u['id'] == session.get('user_id')), None)
+    error = None
+    
+    if request.method == 'POST':
+        rating = request.form.get('rating', '5')
+        comment = request.form.get('comment', '')
+        
+        try:
+            rating = int(rating)
+            if 1 <= rating <= 5 and len(comment) > 0:
+                review_id = len(REVIEWS) + 1
+                REVIEWS.append({
+                    'id': review_id,
+                    'product_id': product_id,
+                    'user_id': user['id'],
+                    'user_name': user['name'],
+                    'rating': rating,
+                    'comment': comment,
+                    'created_at': datetime.now().isoformat()
+                })
+                return redirect(url_for('product_detail', product_id=product_id))
+            else:
+                error = 'กรุณากรอกคะแนนและความเห็นให้ครบถ้วน'
+        except ValueError:
+            error = 'คะแนนไม่ถูกต้อง'
+    
+    return render_template('review_form.html', product=product, user=user, error=error)
+
+
+@app.route('/api/product/<int:product_id>/reviews')
+def get_reviews(product_id):
+    """API เพื่อดึง reviews ของสินค้า"""
+    reviews = [r for r in REVIEWS if r['product_id'] == product_id]
+    return jsonify(reviews)
+
+
+# --- Admin routes ---
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username == app.config['ADMIN_USERNAME'] and password == app.config['ADMIN_PASSWORD']:
+            session['is_admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            error = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+    return render_template('admin_login.html', error=error)
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    return redirect(url_for('admin_login'))
+
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    return render_template('admin_dashboard.html', products=PRODUCTS, orders=ORDERS)
+
+
+@app.route('/admin/products')
+@admin_required
+def admin_products():
+    return render_template('admin_products.html', products=PRODUCTS)
+
+
+@app.route('/admin/products/add', methods=['GET', 'POST'])
+@admin_required
+def admin_products_add():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        price = int(request.form.get('price') or 0)
+        category = request.form.get('category')
+        description = request.form.get('description')
+        new_id = max((p['id'] for p in PRODUCTS), default=0) + 1
+        PRODUCTS.append({'id': new_id, 'name': name, 'price': price, 'category': category, 'description': description})
+
+        # ถ้ามีไฟล์รูปที่อัพโหลด ให้บันทึกเป็น product_{id}.png
+        image = request.files.get('image')
+        saved = False
+        if image and image.filename:
+            saved = save_uploaded_image(image, new_id)
+
+        # ถ้าไม่มีรูปที่อัพโหลด ให้สร้างรูปตัวอย่างอัตโนมัติ
+        if not saved:
+            generate_product_images()
+
+        return redirect(url_for('admin_products'))
+    return render_template('admin_product_form.html', product=None, categories=CATEGORIES)
+
+
+@app.route('/admin/products/edit/<int:product_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_products_edit(product_id):
+    product = next((p for p in PRODUCTS if p['id'] == product_id), None)
+    if not product:
+        return redirect(url_for('admin_products'))
+    if request.method == 'POST':
+        product['name'] = request.form.get('name')
+        product['price'] = int(request.form.get('price') or 0)
+        product['category'] = request.form.get('category')
+        product['description'] = request.form.get('description')
+        # ถ้ามีไฟล์รูปที่อัพโหลด ให้บันทึกทับรูปเดิม
+        image = request.files.get('image')
+        saved = False
+        if image and image.filename:
+            saved = save_uploaded_image(image, product_id)
+
+        # ถ้าไม่มีรูปอัพโหลด ให้สร้างรูปตัวอย่าง (ถ้ายังไม่มี)
+        if not saved:
+            generate_product_images()
+
+        return redirect(url_for('admin_products'))
+    return render_template('admin_product_form.html', product=product, categories=CATEGORIES)
+
+
+@app.route('/admin/products/delete/<int:product_id>', methods=['POST'])
+@admin_required
+def admin_products_delete(product_id):
+    global PRODUCTS
+    PRODUCTS = [p for p in PRODUCTS if p['id'] != product_id]
+    # ลบไฟล์รูปถ้ามี
+    try:
+        image_path = os.path.join(UPLOAD_FOLDER, f'product_{product_id}.png')
+        if os.path.exists(image_path):
+            os.remove(image_path)
+    except Exception:
+        pass
+    return redirect(url_for('admin_products'))
 
 if __name__ == '__main__':
     # สร้างรูปภาพสินค้า

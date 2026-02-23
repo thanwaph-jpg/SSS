@@ -19,9 +19,44 @@
                 <a href="/cart" class="nav-link cart-link">
                     🛒 ตะกร้า <span class="cart-count">{{ cart_count }}</span>
                 </a>
+                {% if session.get('user_id') %}
+                    <a href="/profile" class="nav-link">👤 {{ session.get('user_name') }}</a>
+                    <a href="/logout" class="nav-link">ออกจากระบบ</a>
+                {% else %}
+                    <a href="/login" class="nav-link">เข้าสู่ระบบ</a>
+                    <a href="/register" class="nav-link">สมัครสมาชิก</a>
+                {% endif %}
             </div>
         </div>
     </nav>
+
+    <!-- Hero Carousel -->
+    <section class="hero">
+        <div class="hero-slider">
+            <div class="slides">
+                {% for product in products[:3] %}
+                <div class="slide{% if loop.index0 == 0 %} active{% endif %}">
+                    <img src="{{ url_for('static', filename='images/products/product_' + product.id|string + '.png') }}" alt="{{ product.name }}">
+                    <div class="slide-overlay">
+                        <h3>{{ product.name }}</h3>
+                        <p>฿{{ '{:,.0f}'.format(product.price) }}</p>
+                        <a href="/product/{{ product.id }}" class="btn btn-primary">ดูรายละเอียด</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="hero-content container">
+                <h2>สินค้าไอทีล่าสุด และดีลที่ดีที่สุด</h2>
+                <p>ช้อปได้ง่าย ส่งเร็ว และปลอดภัย</p>
+                <a href="/?category=ทั้งหมด" class="btn btn-primary">เริ่มช้อปเลย</a>
+            </div>
+            <div class="slider-controls">
+                <button id="prev" class="btn">‹</button>
+                <button id="next" class="btn">›</button>
+            </div>
+            <div class="slider-dots" id="dots"></div>
+        </div>
+    </section>
 
     <!-- Filter Section -->
     <div class="filter-section">
@@ -49,17 +84,19 @@
                         <div class="product-image">
                             <img src="{{ url_for('static', filename='images/products/product_' + product.id|string + '.png') }}" 
                                  alt="{{ product.name }}" loading="lazy">
+                            <div class="image-overlay">
+                                <button class="btn btn-add-cart" onclick="addToCart({{ product.id }}, '{{ product.name }}')">เพิ่มลงตะกร้า</button>
+                            </div>
                             <span class="category-badge">{{ product.category }}</span>
                         </div>
                         <div class="product-info">
                             <h3>{{ product.name }}</h3>
                             <p class="description">{{ product.description }}</p>
                             <div class="product-footer">
-                                <span class="price">฿{{ "{:,}".format(product.price) }}</span>
-                                <button class="btn btn-add-cart" 
-                                        onclick="addToCart({{ product.id }}, '{{ product.name }}')">
-                                    เพิ่มลงตะกร้า
-                                </button>
+                                <div>
+                                    <span class="price">฿{{ "{:,}".format(product.price) }}</span>
+                                </div>
+                                <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-outline">ดูรายละเอียด</a>
                             </div>
                         </div>
                     </div>
@@ -76,6 +113,36 @@
     </footer>
 
     <script>
+        // Simple hero slider with dot pagination
+        (function(){
+            const slides = document.querySelectorAll('.hero-slider .slide');
+            const prev = document.getElementById('prev');
+            const next = document.getElementById('next');
+            const dotsContainer = document.getElementById('dots');
+            let current = 0;
+            
+            // Create dots
+            slides.forEach((_, idx) => {
+                const dot = document.createElement('button');
+                dot.className = `dot${idx === 0 ? ' active' : ''}`;
+                dot.onclick = () => { current = idx; show(current); resetTimer(); };
+                dotsContainer.appendChild(dot);
+            });
+            
+            function show(index){
+                slides.forEach((s,i)=> s.classList.toggle('active', i===index));
+                document.querySelectorAll('.dot').forEach((d,i)=> d.classList.toggle('active', i===index));
+            }
+            function nextSlide(){ current = (current+1)%slides.length; show(current); }
+            function prevSlide(){ current = (current-1+slides.length)%slides.length; show(current); }
+            let timer = setInterval(nextSlide, 4500);
+            if(next) next.addEventListener('click', ()=>{ nextSlide(); resetTimer(); });
+            if(prev) prev.addEventListener('click', ()=>{ prevSlide(); resetTimer(); });
+            function resetTimer(){ clearInterval(timer); timer = setInterval(nextSlide, 4500); }
+            // initialize
+            show(0);
+        })();
+
         function addToCart(productId, productName) {
             fetch('/api/cart/add', {
                 method: 'POST',

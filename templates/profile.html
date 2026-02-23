@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรไฟล์ - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/profile" class="nav-link">โปรไฟล์</a>
+                <a href="/logout" class="nav-link">ออกจากระบบ</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container profile-page">
+        <h2>โปรไฟล์สมาชิก</h2>
+        <div class="profile-box">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <img src="{{ url_for('static', filename='images/profiles/' + user.profile_pic) }}" alt="{{ user.name }}" class="avatar-image">
+                </div>
+                <div class="profile-info">
+                    <p class="user-name">{{ user.name }}</p>
+                    <p class="user-email">{{ user.email }}</p>
+                </div>
+            </div>
+
+            <h3>ความเห็นของฉัน</h3>
+            {% if reviews %}
+                <div class="reviews-list">
+                    {% for review in reviews %}
+                        <div class="review-card">
+                            <div class="review-header">
+                                <strong>{{ review.user_name }}</strong>
+                                <span class="review-rating">
+                                    {% for i in range(review.rating) %}★{% endfor %}{% for i in range(5 - review.rating) %}☆{% endfor %}
+                                </span>
+                            </div>
+                            <p class="review-comment">{{ review.comment }}</p>
+                            <p class="review-date">{{ review.created_at[:10] }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="no-data">ยังไม่มีความเห็น</p>
+            {% endif %}
+        </div>
+
+        <div class="profile-actions">
+            <a href="/" class="btn btn-outline">กลับไปช้อปปิ้ง</a>
+            <a href="/logout" class="btn btn-danger">ออกจากระบบ</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved</p>
+        </div>
+    </footer>
+</body>
+</html>

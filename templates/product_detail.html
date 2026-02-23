@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - SmartMall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1>🛍️ SmartMall</h1>
+                <p>ศูนย์การค้าออนไลน์เบอร์หนึ่ง</p>
+            </div>
+            <div class="navbar-menu">
+                <a href="/" class="nav-link">หน้าแรก</a>
+                <a href="/cart" class="nav-link cart-link">
+                    🛒 ตะกร้า <span class="cart-count">{{ cart_count }}</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb container">
+        <a href="/">หน้าแรก</a>
+        <span> / </span>
+        <a href="/?category={{ product.category }}">{{ product.category }}</a>
+        <span> / </span>
+        <span>{{ product.name }}</span>
+    </div>
+
+    <!-- Product Detail -->
+    <main class="container">
+        <section class="product-detail-section">
+            <div class="detail-grid">
+                <!-- Product Image -->
+                <div class="detail-image">
+                    <img src="{{ url_for('static', filename='images/products/product_' + product.id|string + '.png') }}" 
+                         alt="{{ product.name }}">
+                    <span class="category-badge">{{ product.category }}</span>
+                </div>
+
+                <!-- Product Info -->
+                <div class="detail-info">
+                    <h1>{{ product.name }}</h1>
+                    <p class="detail-category">หมวดหมู่: <strong>{{ product.category }}</strong></p>
+                    
+                    <div class="detail-price">
+                        <span class="price-large">฿{{ "{:,}".format(product.price) }}</span>
+                    </div>
+
+                    <p class="detail-description">
+                        {{ product.description }}
+                    </p>
+
+                    <div class="detail-actions">
+                        <div class="quantity-selector">
+                            <label>จำนวน:</label>
+                            <div class="qty-input">
+                                <button id="qty-minus">−</button>
+                                <input type="number" id="qty-value" value="1" min="1">
+                                <button id="qty-plus">+</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-large" onclick="addToCartDetail({{ product.id }}, '{{ product.name }}')">
+                            🛒 เพิ่มลงตะกร้า
+                        </button>
+                    </div>
+
+                    <div class="detail-features">
+                        <h3>ข้อมูลสินค้า</h3>
+                        <ul>
+                            <li>✓ จัดส่งฟรีทั่วประเทศ</li>
+                            <li>✓ รับประกันของแท้ 100%</li>
+                            <li>✓ ชำระเงินปลอดภัย</li>
+                            <li>✓ สามารถคืนสินค้าภายใน 7 วัน</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Related Products -->
+        {% if related %}
+        <section class="related-section">
+            <h2>สินค้าที่เกี่ยวข้อง</h2>
+            <div class="products-grid">
+                {% for rel_product in related %}
+                    <div class="product-card">
+                        <div class="product-image">
+                            <img src="{{ url_for('static', filename='images/products/product_' + rel_product.id|string + '.png') }}" 
+                                 alt="{{ rel_product.name }}">
+                            <div class="image-overlay">
+                                <button class="btn btn-add-cart" onclick="addToCart({{ rel_product.id }}, '{{ rel_product.name }}')">เพิ่มลงตะกร้า</button>
+                            </div>
+                            <span class="category-badge">{{ rel_product.category }}</span>
+                        </div>
+                        <div class="product-info">
+                            <h3>{{ rel_product.name }}</h3>
+                            <p class="description">{{ rel_product.description }}</p>
+                            <div class="product-footer">
+                                <div>
+                                    <span class="price">฿{{ "{:,}".format(rel_product.price) }}</span>
+                                </div>
+                                <a href="{{ url_for('product_detail', product_id=rel_product.id) }}" class="btn btn-outline">ดูรายละเอียด</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- Reviews Section -->
+        <section class="reviews-section">
+            <h2>ความเห็นจากลูกค้า</h2>
+            
+            <div class="reviews-header">
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('add_review', product_id=product.id) }}" class="btn btn-primary">เขียนความเห็น</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">เข้าสู่ระบบเพื่อเขียนความเห็น</a>
+                {% endif %}
+            </div>
+
+            {% if reviews %}
+                <div class="reviews-list">
+                    {% for review in reviews %}
+                        <div class="review-card">
+                            <div class="review-header">
+                                <div class="review-user-info">
+                                    <strong>{{ review.user_name }}</strong>
+                                    <span class="review-rating">
+                                        {% for i in range(review.rating) %}★{% endfor %}{% for i in range(5 - review.rating) %}☆{% endfor %}
+                                    </span>
+                                </div>
+                                <p class="review-date">{{ review.created_at[:10] }}</p>
+                            </div>
+                            <p class="review-comment">{{ review.comment }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="no-reviews">ยังไม่มีความเห็น เป็นคนแรกในการเขียนความเห็น!</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 SmartMall - All Rights Reserved | เลขประจำตัวผู้เสียภาษีอากร 0123456789012</p>
+        </div>
+    </footer>
+
+    <script>
+        // Quantity selector
+        const qtyMinus = document.getElementById('qty-minus');
+        const qtyPlus = document.getElementById('qty-plus');
+        const qtyValue = document.getElementById('qty-value');
+        
+        if (qtyMinus) qtyMinus.addEventListener('click', () => {
+            let val = parseInt(qtyValue.value) || 1;
+            if (val > 1) qtyValue.value = val - 1;
+        });
+        
+        if (qtyPlus) qtyPlus.addEventListener('click', () => {
+            let val = parseInt(qtyValue.value) || 1;
+            qtyValue.value = val + 1;
+        });
+
+        function addToCartDetail(productId, productName) {
+            const quantity = parseInt(document.getElementById('qty-value').value) || 1;
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: quantity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const cartCount = document.querySelector('.cart-count');
+                    if (cartCount) {
+                        cartCount.textContent = data.cart_count;
+                    }
+                    showNotification(`✓ เพิ่ม ${productName} (${quantity}) ลงตะกร้าแล้ว`, 'success');
+                    // Reset quantity
+                    document.getElementById('qty-value').value = 1;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+            });
+        }
+
+        function addToCart(productId, productName) {
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: productId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const cartCount = document.querySelector('.cart-count');
+                    if (cartCount) {
+                        cartCount.textContent = data.cart_count;
+                    }
+                    showNotification(`✓ เพิ่ม ${productName} ลงตะกร้าแล้ว`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('เกิดข้อผิดพลาด กรุณาลองใหม่', 'error');
+            });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

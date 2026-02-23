@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if product %}แก้ไขสินค้า{% else %}เพิ่มสินค้า{% endif %} - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>{% if product %}แก้ไขสินค้า{% else %}เพิ่มสินค้า{% endif %}</h2>
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>ชื่อ</label>
+                <input type="text" name="name" value="{{ product.name if product }}" required>
+            </div>
+            <div class="form-group">
+                <label>ราคา</label>
+                <input type="number" name="price" value="{{ product.price if product }}" required>
+            </div>
+            <div class="form-group">
+                <label>หมวดหมู่</label>
+                <select name="category">
+                    {% for c in categories %}
+                        <option value="{{ c }}" {% if product and product.category==c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>คำอธิบาย</label>
+                <textarea name="description">{{ product.description if product }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>รูปสินค้า (ไฟล์ PNG/JPG)</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <button class="btn">บันทึก</button>
+        </form>
+        <p><a href="{{ url_for('admin_products') }}">กลับไปหน้าจัดการสินค้า</a></p>
+    </div>
+</body>
+</html>
