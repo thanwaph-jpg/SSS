@@ -43,6 +43,18 @@ body {
     align-items: center;
 }
 
+/* brand container with optional logo */
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-brand img.navbar-logo {
+    width: 40px;
+    height: auto;
+}
+
 .navbar-brand h1 {
     font-size: 28px;
     margin-bottom: 5px;
@@ -213,6 +225,20 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 25px;
     margin-bottom: 50px;
+}
+
+/* ============================================
+   ANIME BANNER
+   ============================================ */
+.anime-banner {
+    margin-top: 20px;
+    text-align: center;
+}
+.anime-banner img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
 }
 
 /* ============================================

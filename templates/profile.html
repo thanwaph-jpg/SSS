@@ -10,6 +10,7 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SmartMall" class="navbar-logo">
                 <h1>🛍️ SmartMall</h1>
             </div>
             <div class="navbar-menu">
@@ -51,6 +52,20 @@
                 </div>
             {% else %}
                 <p class="no-data">ยังไม่มีความเห็น</p>
+            {% endif %}
+
+            <h3>คำสั่งซื้อของฉัน</h3>
+            {% if orders %}
+                <ul class="order-list">
+                    {% for o in orders %}
+                        <li>
+                            {{ o.order_id }} - {{ o.status }}
+                            {% if o.tracking_number %} (Tracking: {{ o.tracking_number }}){% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="no-data">ยังไม่มีคำสั่งซื้อ</p>
             {% endif %}
         </div>
 

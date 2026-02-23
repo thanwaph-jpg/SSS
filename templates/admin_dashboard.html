@@ -9,17 +9,38 @@
 <body>
     <div class="container">
         <h2>แดชบอร์ดผู้ดูแล</h2>
-        <p><a href="{{ url_for('admin_products') }}">จัดการสินค้า</a> | <a href="{{ url_for('admin_logout') }}">ออกจากระบบ</a></p>
+        <p>
+            <a href="{{ url_for('admin_products') }}">จัดการสินค้า</a> |
+            <a href="{{ url_for('admin_banner') }}">รูปหน้าเว็บ (Anime Banner)</a> |
+            <a href="{{ url_for('admin_logout') }}">ออกจากระบบ</a>
+        </p>
 
-        <h3>คำสั่งซื้อล่าสุด</h3>
+        <h3>คำสั่งซื้อ</h3>
         {% if orders %}
             <table class="table">
-                <tr><th>Order ID</th><th>Created</th><th>Items</th></tr>
+                <tr>
+                    <th>Order ID</th><th>Created</th><th>Items</th>
+                    <th>Status</th><th>Tracking</th><th>Actions</th>
+                </tr>
                 {% for o in orders %}
                     <tr>
                         <td>{{ o.order_id }}</td>
                         <td>{{ o.created_at }}</td>
                         <td>{{ o.cart | length }}</td>
+                        <td>{{ o.status }}</td>
+                        <td>{{ o.tracking_number }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin_order_update', order_id=o.order_id) }}">
+                                <select name="status">
+                                    <option value="Pending" {% if o.status=='Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="Shipped" {% if o.status=='Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if o.status=='Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled" {% if o.status=='Cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                <input type="text" name="tracking" value="{{ o.tracking_number }}" placeholder="Tracking">
+                                <button class="btn btn-primary btn-sm" type="submit">Update</button>
+                            </form>
+                        </td>
                     </tr>
                 {% endfor %}
             </table>

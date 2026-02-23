@@ -37,7 +37,7 @@ CATEGORIES = ['ทั้งหมด', 'อิเล็กทรอนิกส�
 ORDERS = []
 
 # ข้อมูลผู้ใช้ลูกค้า (เก็บในหน่วยความจำ)
-USERS = []
+USERS = []  # จะเติมบัญชีตัวอย่างหลังจากประกาศฟังก์ชันสร้าง avatar แล้ว
 
 # ข้อมูล reviews/ratings (เก็บในหน่วยความจำ)
 REVIEWS = []
@@ -214,6 +214,17 @@ def generate_anime_avatar(user_id, user_name):
     avatar_img.save(avatar_path)
     return f'profile_{user_id}.png'
 
+
+# สร้างบัญชีตัวอย่างให้เข้าทดสอบได้ทันทีหลังฟังก์ชันถูกประกาศ
+if not USERS:
+    USERS.append({
+        'id': 1,
+        'email': 'user@example.com',
+        'password': 'password',
+        'name': 'Demo User',
+        'profile_pic': generate_anime_avatar(1, 'Demo User')
+    })
+
 def get_cart_total(cart):
     """คำนวณยอดรวมของตะกร้า"""
     total = 0
@@ -384,8 +395,13 @@ def place_order():
         'order_id': f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}",
         'customer': data,
         'cart': session.get('cart', []),
-        'created_at': datetime.now().isoformat()
+        'created_at': datetime.now().isoformat(),
+        'status': 'Pending',          # สถานะเริ่มต้น
+        'tracking_number': ''         # รหัสติดตาม (ถ้ามี)
     }
+    # ถ้าผู้ใช้ล็อกอิน ให้เก็บ user_id ด้วย
+    if session.get('user_id'):
+        order_data['user_id'] = session.get('user_id')
     
     # ล้างตะกร้า
     if 'cart' in session:
@@ -403,7 +419,10 @@ def place_order():
 @app.route('/success/<order_id>')
 def order_success(order_id):
     """หน้าการสั่งซื้อสำเร็จ"""
-    return render_template('success.html', order_id=order_id)
+    order = next((o for o in ORDERS if o.get('order_id') == order_id), None)
+    status = order.get('status') if order else ''
+    tracking = order.get('tracking_number') if order else ''
+    return render_template('success.html', order_id=order_id, status=status, tracking=tracking)
 
 
 # --- Customer Auth Routes ---
@@ -470,8 +489,9 @@ def profile():
     
     # ดึง orders ของผู้ใช้นี้ (หากเก็บ user_id ใน order ด้วย)
     my_reviews = [r for r in REVIEWS if r.get('user_id') == user['id']]
+    my_orders = [o for o in ORDERS if o.get('user_id') == user['id']]
     
-    return render_template('profile.html', user=user, reviews=my_reviews)
+    return render_template('profile.html', user=user, reviews=my_reviews, orders=my_orders)
 
 
 # --- Review Routes ---
@@ -545,10 +565,51 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', products=PRODUCTS, orders=ORDERS)
 
 
+@app.route('/admin/order/update/<order_id>', methods=['POST'])
+@admin_required
+def admin_order_update(order_id):
+    """Allow admin to change status or tracking number of an order."""
+    status = request.form.get('status')
+    tracking = request.form.get('tracking')
+    for o in ORDERS:
+        if o.get('order_id') == order_id:
+            if status:
+                o['status'] = status
+            if tracking is not None:
+                o['tracking_number'] = tracking
+            break
+    return redirect(url_for('admin_dashboard'))
+
+
 @app.route('/admin/products')
 @admin_required
 def admin_products():
     return render_template('admin_products.html', products=PRODUCTS)
+
+
+# --- Admin banner management ---
+@app.route('/admin/banner', methods=['GET', 'POST'])
+@admin_required
+def admin_banner():
+    """Allow admin to upload or replace the front anime banner."""
+    message = None
+    banner_path = os.path.join(os.path.dirname(__file__), 'static', 'images', 'anime_front.png')
+    if request.method == 'POST':
+        file = request.files.get('banner')
+        if file and file.filename and allowed_file(file.filename):
+            try:
+                # save directly with png format
+                img = Image.open(file.stream)
+                img = img.convert('RGB')
+                img.save(banner_path, format='PNG')
+                message = 'อัปโหลดรูปสำเร็จ'
+            except Exception:
+                message = 'เกิดข้อผิดพลาดขณะบันทึกรูป'
+        else:
+            message = 'ไฟล์ไม่ถูกต้อง (รองรับ PNG,JPG,JPEG,GIF)'
+    # check if banner exists to show preview
+    banner_exists = os.path.exists(banner_path)
+    return render_template('admin_banner.html', message=message, banner_exists=banner_exists)
 
 
 @app.route('/admin/products/add', methods=['GET', 'POST'])
@@ -615,9 +676,32 @@ def admin_products_delete(product_id):
         pass
     return redirect(url_for('admin_products'))
 
+def ensure_default_logo():
+    """Create a simple placeholder logo if none exists."""
+    logo_path = os.path.join(os.path.dirname(__file__), 'static', 'images', 'logo.png')
+    if not os.path.exists(logo_path):
+        try:
+            img = Image.new('RGB', (80, 80), color='#00d4ff')
+            draw = ImageDraw.Draw(img)
+            try:
+                font = ImageFont.truetype("arial.ttf", 36)
+            except:
+                font = ImageFont.load_default()
+            text = "SM"
+            bbox = draw.textbbox((0,0), text, font=font)
+            w = bbox[2] - bbox[0]
+            h = bbox[3] - bbox[1]
+            draw.text(((80-w)//2, (80-h)//2), text, fill='white', font=font)
+            img.save(logo_path, format='PNG')
+        except Exception:
+            pass
+
+
 if __name__ == '__main__':
     # สร้างรูปภาพสินค้า
     generate_product_images()
+    # สร้างโลโก้เริ่มต้นหากยังไม่มี
+    ensure_default_logo()
     
     # รันแอพพลิเคชัน
     app.run(debug=True, host='localhost', port=5000)

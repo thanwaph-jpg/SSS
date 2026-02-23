@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการรูปหน้าเว็บ - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>จัดการรูปหน้าเว็บ (Anime Banner)</h2>
+        <p><a href="{{ url_for('admin_dashboard') }}">กลับไปแดชบอร์ด</a></p>
+
+        {% if message %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+
+        {% if banner_exists %}
+            <div class="current-banner">
+                <p>รูปปัจจุบัน:</p>
+                <img src="{{ url_for('static', filename='images/anime_front.png') }}" alt="Current banner" style="max-width:400px; display:block; margin-bottom:10px;">
+            </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>อัปโหลดรูปใหม่ (PNG/JPG)</label>
+                <input type="file" name="banner" accept="image/*" required>
+            </div>
+            <button class="btn btn-primary">อัปโหลด</button>
+        </form>
+    </div>
+</body>
+</html>

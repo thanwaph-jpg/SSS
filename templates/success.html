@@ -11,6 +11,7 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SmartMall" class="navbar-logo">
                 <h1>🛍️ SmartMall</h1>
             </div>
             <div class="navbar-menu">
@@ -32,6 +33,13 @@
                     <p><strong>เลขที่คำสั่งซื้อ:</strong></p>
                     <p class="order-id">{{ order_id }}</p>
                 </div>
+
+                {% if status %}
+                    <p><strong>สถานะ:</strong> {{ status }}</p>
+                {% endif %}
+                {% if tracking %}
+                    <p><strong>เลขติดตาม:</strong> {{ tracking }}</p>
+                {% endif %}
 
                 <div class="success-messages">
                     <p>📧 เราจะส่งรายละเอียดคำสั่งซื้อไปยังอีเมลของคุณ</p>
